@@ -1,0 +1,49 @@
+Steps for producing vibration signal signatures (per IMU signal).
+
+1. Identifying contact events
+- Adaptive Energy-based threshold - low: mean + SD / high: mean + 3*SD - (moving mean and moving standard deviation)
+
+2. Improving signal to noise ratio:
+- High pass-filter: remove low-frequency hand motion. (Butterworth filter)
+- Low-pass filter: remove high-frequency jitter
+- Band-pass filter (targeting specific frequencies) OR wavelet denoising
+- Sensor Fusion of the Gyroscope: differentiate motion.
+	def complementary_filter(acc, gyro, alpha=0.98): #(alpha is weighting factor between accel and gyro)
+	    fused_signal = alpha * gyro + (1 - alpha) * acc
+	    return fused_signal
+
+3. Fast Fourier Transform (time to frequency domain)
+	dt = 1.0 / fs
+	# Perform FFT
+	fft_result = np.fft.fft(accel_data)
+	fft_magnitude = np.abs(fft_result)  # Magnitude of the FFT
+
+	# Calculate the frequency bins
+	freqs = np.fft.fftfreq(len(fft_result), d=1/dt)
+
+	# Only keep the positive half of the spectrum (real frequencies)
+	positive_freqs = freqs[:len(freqs) // 2]
+	positive_magnitude = fft_magnitude[:len(freqs) // 2]
+
+
+4. Power spectral density = tells you how the power (or energy) of a signal is distributed across different frequencies
+- Welch’s Method for Smoother PSD: scipy.signal.welch
+	freqs, psd = welch(imu_signal, fs=sampling_rate, nperseg=256)
+- Extract statistical features (peak frequency, spectral centroid, entropy).
+
+
+5. Feature Extraction:
+	- PSD-based features (total power, peak frequency).
+	- Time-domain features (RMS, zero-crossing rate, skewness, kurtosis).
+	- Fusion of PSD and gyro-derived features: Combine PSD features with gyro-derived features (angular velocity, angular acceleration).
+	- Use dimensionality reduction techniques like PCA (Principal Component Analysis) to reduce noise in feature space.
+
+5. Features for Classification:
+- PSD, Gyro
+
+
+
+
+
+
+
